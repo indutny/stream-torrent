@@ -1,6 +1,7 @@
 const WebTorrent = require('webtorrent');
+const path = require('path');
 const { pipeline } = require('stream/promises');
-const { Zip } = require('./zip');
+const Zip = require('jszip');
 
 const client = new WebTorrent();
 
@@ -14,41 +15,46 @@ function sanitize(name) {
   return name.replace(/[^\p{L}\d,!\.\/\\\-_\s]+/gu, '');
 }
 
-async function grepFile(torrentFile) {
-  const z = new Zip();
+async function processZip(name, source) {
+  console.log('processing zip', name);
 
-  z.on('file', async (file) => {
-    let name = '';
-    file.on('header', header => name = sanitize(header.name));
+  const z = await Zip.loadAsync(source);
 
-    try {
-      let chunks = [];
-      for await (const chunk of file) {
-        chunks.push(chunk);
+  for (const file in z.file(/./)) {
+    if (/^\.zip$/.test(file.name)) {
+      try {
+        await processZip(path.join(name, file.name), file.nodeStream());
+      } catch (error) {
+        console.error(name, error);
       }
-      const content = Buffer.concat(chunks).toString();
-      console.error('downloaded', torrentFile.name, name, content.length);
-
-      const matches = content.matchAll(PATTERN);
-      for (const { index } of matches) {
-        const slice = content.slice(index - 64, index + 64);
-
-        console.log('found match', torrentFile.name, name, sanitize(slice));
-      }
-    } catch (error) {
-      console.error('error', torrentFile.name, name, error.message);
+      continue;
     }
-  });
 
-  await pipeline(
-    torrentFile.createReadStream(),
-    z
-  );
+    if (/^\.(png|jpg|jpeg|exe)$/.test(file.name)) {
+      continue;
+    }
+
+    let content = await file.async('nodebuffer');
+    content = content.toString()
+    const matches = content.matchAll(PATTERN);
+    for (const { index } of matches) {
+      const slice = content.slice(index - 64, index + 64);
+
+      console.log('found match', torrentFile.name, name, sanitize(slice));
+    }
+  }
+}
+
+async function grepFile(torrentFile) {
+  console.log('downloading', torrentFile.name, torrentFile.size);
+  const z = await Zip.loadAsync(torrentFile.createReadStream());
+
+  await processZip(z);
 }
 
 client.add(url, async (torrent) => {
   const zipFiles = torrent.files.filter(f => f.name.endsWith('.zip'));
-  console.log('got torrent', zipFiles.map(f => f.name));
+  console.log('got torrent', zipFiles.length);
 
   for (const file of zipFiles) {
     try {
