@@ -3,8 +3,6 @@ const path = require('path');
 const { pipeline } = require('stream/promises');
 const Zip = require('jszip');
 
-const client = new WebTorrent();
-
 const PATTERN = new RegExp(process.argv[2], 'gi');
 const url = process.argv[3];
 
@@ -16,14 +14,23 @@ function sanitize(name) {
 }
 
 async function processZip(name, source) {
-  console.log('processing zip', name);
+  console.log('processing %s', name);
 
-  const z = await Zip.loadAsync(source);
+  const chunks = [];
+  for await (const chunk of source) {
+    chunks.push(chunk);
+  }
 
-  for (const file in z.file(/./)) {
+  const total = Buffer.concat(chunks);
+  console.log('downloaded %d of %s', total.length, name);
+
+  const z = await Zip.loadAsync(total);
+
+  for (const file of z.file(/./)) {
+    const fullPath = path.join(name, file.name);
     if (/^\.zip$/.test(file.name)) {
       try {
-        await processZip(path.join(name, file.name), file.nodeStream());
+        await processZip(fullPath, file.nodeStream());
       } catch (error) {
         console.error(name, error);
       }
@@ -40,7 +47,7 @@ async function processZip(name, source) {
     for (const { index } of matches) {
       const slice = content.slice(index - 64, index + 64);
 
-      console.log('found match', torrentFile.name, name, sanitize(slice));
+      console.log('found match', fullPath, sanitize(slice));
     }
   }
 }
@@ -51,6 +58,8 @@ async function grepFile(torrentFile) {
 
   await processZip(z);
 }
+
+const client = new WebTorrent();
 
 client.add(url, async (torrent) => {
   const zipFiles = torrent.files.filter(f => f.name.endsWith('.zip'));
