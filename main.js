@@ -7,6 +7,9 @@ const client = new WebTorrent();
 const PATTERN = new RegExp(process.argv[2], 'gi');
 const url = process.argv[3];
 
+console.log('Grepping for', PATTERN);
+console.log('url', url);
+
 function sanitize(name) {
   return name.replace(/[^\p{L}\d,!\.\/\\\-_\s]+/gu, '');
 }
