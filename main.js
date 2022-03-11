@@ -3,7 +3,7 @@ const path = require('path');
 const { pipeline } = require('stream/promises');
 const Zip = require('jszip');
 
-const PATTERN = new RegExp('(^|\W)' + process.argv[2] + '(\W|$)', 'gi');
+const PATTERN = new RegExp('(^|\\W)' + process.argv[2] + '(\\W|$)', 'gi');
 const url = process.argv[3];
 
 console.log('Grepping for', PATTERN);
