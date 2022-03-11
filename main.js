@@ -56,7 +56,7 @@ async function grepFile(torrentFile) {
   console.log('downloading', torrentFile.name, torrentFile.length);
   const z = await Zip.loadAsync(torrentFile.createReadStream());
 
-  await processZip(z);
+  await processZip(torrentFile.name, z);
 }
 
 const client = new WebTorrent();
