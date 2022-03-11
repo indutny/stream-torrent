@@ -36,7 +36,7 @@ async function grepFile(torrentFile) {
         console.log('found match', torrentFile.name, name, sanitize(slice));
       }
     } catch (error) {
-      console.error('error', torrentFile.name, name, error);
+      console.error('error', torrentFile.name, name, error.message);
     }
   });
 
@@ -54,7 +54,7 @@ client.add(url, async (torrent) => {
     try {
       await grepFile(file);
     } catch (error) {
-      console.error('global error', error);
+      console.error('global error', error.message);
     }
   }
 
