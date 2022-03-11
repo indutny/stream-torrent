@@ -27,16 +27,16 @@ async function grepFile(torrentFile) {
         chunks.push(chunk);
       }
       const content = Buffer.concat(chunks).toString();
-      console.error('downloaded', file.name, name, content.length);
+      console.error('downloaded', torrentFile.name, name, content.length);
 
       const matches = content.matchAll(PATTERN);
       for (const { index } of matches) {
         const slice = content.slice(index - 64, index + 64);
 
-        console.log('found match', file.name, name, sanitize(slice));
+        console.log('found match', torrentFile.name, name, sanitize(slice));
       }
     } catch (error) {
-      console.error('error', file.name, name, error);
+      console.error('error', torrentFile.name, name, error);
     }
   });
 
